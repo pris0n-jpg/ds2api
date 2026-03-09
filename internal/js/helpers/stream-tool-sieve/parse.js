@@ -9,6 +9,7 @@ const {
   buildToolCallCandidates,
   parseToolCallsPayload,
   parseMarkupToolCalls,
+  parseTextKVToolCalls,
 } = require('./parse_payload');
 
 const TOOL_NAME_LOOSE_PATTERN = /[^a-z0-9]+/g;
@@ -53,13 +54,23 @@ function parseToolCallsDetailed(text, toolNames) {
     if (parsed.length === 0) {
       parsed = parseMarkupToolCalls(c);
     }
+    if (parsed.length === 0) {
+      parsed = parseTextKVToolCalls(c);
+    }
     if (parsed.length > 0) {
       result.sawToolCallSyntax = true;
       break;
     }
   }
   if (parsed.length === 0) {
-    return result;
+    parsed = parseMarkupToolCalls(sanitized);
+    if (parsed.length === 0) {
+      parsed = parseTextKVToolCalls(sanitized);
+      if (parsed.length === 0) {
+        return result;
+      }
+    }
+    result.sawToolCallSyntax = true;
   }
 
   const filtered = filterToolCallsDetailed(parsed, toolNames);
@@ -89,6 +100,9 @@ function parseStandaloneToolCallsDetailed(text, toolNames) {
   let parsed = parseToolCallsPayload(trimmed);
   if (parsed.length === 0) {
     parsed = parseMarkupToolCalls(trimmed);
+  }
+  if (parsed.length === 0) {
+    parsed = parseTextKVToolCalls(trimmed);
   }
   if (parsed.length === 0) {
     return result;
@@ -207,7 +221,8 @@ function looksLikeToolCallSyntax(text) {
   return lower.includes('tool_calls')
     || lower.includes('<tool_call')
     || lower.includes('<function_call')
-    || lower.includes('<invoke');
+    || lower.includes('<invoke')
+    || lower.includes('function.name:');
 }
 
 module.exports = {

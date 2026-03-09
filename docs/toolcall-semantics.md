@@ -19,7 +19,8 @@ This document defines the cross-runtime contract for `ParseToolCallsDetailed` / 
    - first `{` to last `}` object slice.
 3. Parse each candidate in order:
    - JSON payload parser (`tool_calls`, list, single call object),
-   - markup parser (`<tool_call>`, `<function_call>`, `<invoke>`; supports attributes + nested fields).
+   - XML/Markup parser (`<tool_call>`, `<function_call>`, `<invoke>`; supports attributes + nested fields),
+   - Text KV fallback parser (`function.name: <name>` ... `function.arguments: {json}`).
 4. Stop at first candidate that yields at least one call.
 
 ## Name normalization policy

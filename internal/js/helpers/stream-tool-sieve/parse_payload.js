@@ -18,6 +18,7 @@ const TOOL_CALL_MARKUP_ARGS_PATTERNS = [
   /<(?:[a-z0-9_:-]+:)?args\b[^>]*>([\s\S]*?)<\/(?:[a-z0-9_:-]+:)?args>/i,
   /<(?:[a-z0-9_:-]+:)?params\b[^>]*>([\s\S]*?)<\/(?:[a-z0-9_:-]+:)?params>/i,
 ];
+const TEXT_KV_NAME_PATTERN = /function\.name:\s*([a-zA-Z0-9_.-]+)/gi;
 
 const {
   toStringSafe,
@@ -137,6 +138,47 @@ function parseMarkupToolCalls(text) {
     if (parsed) {
       out.push(parsed);
     }
+  }
+  return out;
+}
+
+function parseTextKVToolCalls(text) {
+  const raw = toStringSafe(text);
+  if (!raw) {
+    return [];
+  }
+  const out = [];
+  const matches = [...raw.matchAll(TEXT_KV_NAME_PATTERN)];
+  if (matches.length === 0) {
+    return out;
+  }
+  for (let i = 0; i < matches.length; i += 1) {
+    const match = matches[i];
+    const name = toStringSafe(match[1]).trim();
+    if (!name) {
+      continue;
+    }
+    const nameEnd = match.index + toStringSafe(match[0]).length;
+    const searchEnd = i + 1 < matches.length ? matches[i + 1].index : raw.length;
+    const searchArea = raw.slice(nameEnd, searchEnd);
+    const argIdx = searchArea.indexOf('function.arguments:');
+    if (argIdx < 0) {
+      continue;
+    }
+    const argStart = nameEnd + argIdx + 'function.arguments:'.length;
+    const bracePos = raw.slice(argStart, searchEnd).indexOf('{');
+    if (bracePos < 0) {
+      continue;
+    }
+    const objStart = argStart + bracePos;
+    const obj = extractJSONObjectFrom(raw, objStart);
+    if (!obj.ok) {
+      continue;
+    }
+    out.push({
+      name,
+      input: parseToolCallInput(raw.slice(objStart, obj.end)),
+    });
   }
   return out;
 }
@@ -317,4 +359,5 @@ module.exports = {
   buildToolCallCandidates,
   parseToolCallsPayload,
   parseMarkupToolCalls,
+  parseTextKVToolCalls,
 };

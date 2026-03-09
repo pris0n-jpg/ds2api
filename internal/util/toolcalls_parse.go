@@ -2,11 +2,8 @@ package util
 
 import (
 	"encoding/json"
-	"regexp"
 	"strings"
 )
-
-var toolNameLoosePattern = regexp.MustCompile(`[^a-z0-9]+`)
 
 type ParsedToolCall struct {
 	Name  string         `json:"name"`
@@ -45,6 +42,9 @@ func ParseToolCallsDetailed(text string, availableToolNames []string) ToolCallPa
 		if len(tc) == 0 {
 			tc = parseMarkupToolCalls(candidate)
 		}
+		if len(tc) == 0 {
+			tc = parseTextKVToolCalls(candidate)
+		}
 		if len(tc) > 0 {
 			parsed = tc
 			result.SawToolCallSyntax = true
@@ -54,7 +54,10 @@ func ParseToolCallsDetailed(text string, availableToolNames []string) ToolCallPa
 	if len(parsed) == 0 {
 		parsed = parseXMLToolCalls(text)
 		if len(parsed) == 0 {
-			return result
+			parsed = parseTextKVToolCalls(text)
+			if len(parsed) == 0 {
+				return result
+			}
 		}
 		result.SawToolCallSyntax = true
 	}
@@ -92,6 +95,9 @@ func ParseStandaloneToolCallsDetailed(text string, availableToolNames []string) 
 		}
 		if len(parsed) == 0 {
 			parsed = parseMarkupToolCalls(candidate)
+		}
+		if len(parsed) == 0 {
+			parsed = parseTextKVToolCalls(candidate)
 		}
 		if len(parsed) > 0 {
 			result.SawToolCallSyntax = true
@@ -159,28 +165,7 @@ func filterToolCallsDetailed(parsed []ParsedToolCall, availableToolNames []strin
 }
 
 func resolveAllowedToolName(name string, allowed map[string]struct{}, allowedCanonical map[string]string) string {
-	if _, ok := allowed[name]; ok {
-		return name
-	}
-	lower := strings.ToLower(strings.TrimSpace(name))
-	if canonical, ok := allowedCanonical[lower]; ok {
-		return canonical
-	}
-	if idx := strings.LastIndex(lower, "."); idx >= 0 && idx < len(lower)-1 {
-		if canonical, ok := allowedCanonical[lower[idx+1:]]; ok {
-			return canonical
-		}
-	}
-	loose := toolNameLoosePattern.ReplaceAllString(lower, "")
-	if loose == "" {
-		return ""
-	}
-	for candidateLower, canonical := range allowedCanonical {
-		if toolNameLoosePattern.ReplaceAllString(candidateLower, "") == loose {
-			return canonical
-		}
-	}
-	return ""
+	return resolveAllowedToolNameWithLooseMatch(name, allowed, allowedCanonical)
 }
 
 func parseToolCallsPayload(payload string) []ParsedToolCall {
@@ -207,7 +192,8 @@ func looksLikeToolCallSyntax(text string) bool {
 	return strings.Contains(lower, "tool_calls") ||
 		strings.Contains(lower, "<tool_call") ||
 		strings.Contains(lower, "<function_call") ||
-		strings.Contains(lower, "<invoke")
+		strings.Contains(lower, "<invoke") ||
+		strings.Contains(lower, "function.name:")
 }
 
 func parseToolCallList(v any) []ParsedToolCall {

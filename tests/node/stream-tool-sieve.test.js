@@ -94,6 +94,34 @@ test('parseToolCalls supports fenced json and function.arguments string payload'
   assert.equal(calls.length, 0);
 });
 
+test('parseToolCalls parses text-kv fallback payload', () => {
+  const text = [
+    '[TOOL_CALL_HISTORY]',
+    'function.name: execute_command',
+    'function.arguments: {"command":"cd scripts && python check_syntax.py example.py","cwd":null,"timeout":30}',
+    '[/TOOL_CALL_HISTORY]',
+    'Some other text thinking...',
+  ].join('\n');
+  const calls = parseToolCalls(text, ['execute_command']);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].name, 'execute_command');
+  assert.equal(calls[0].input.command, 'cd scripts && python check_syntax.py example.py');
+});
+
+test('parseToolCalls parses multiple text-kv fallback payloads', () => {
+  const text = [
+    'function.name: read_file',
+    'function.arguments: {"path":"abc.txt"}',
+    '',
+    'function.name: bash',
+    'function.arguments: {"command":"ls"}',
+  ].join('\n');
+  const calls = parseToolCalls(text, ['read_file', 'bash']);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].name, 'read_file');
+  assert.equal(calls[1].name, 'bash');
+});
+
 test('parseStandaloneToolCalls only matches standalone payload and ignores mixed prose', () => {
   const mixed = '这里是示例：{"tool_calls":[{"name":"read_file","input":{"path":"README.MD"}}]}，请勿执行。';
   const standalone = '{"tool_calls":[{"name":"read_file","input":{"path":"README.MD"}}]}';
