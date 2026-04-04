@@ -77,6 +77,14 @@ data: <json or text>
 ./tests/scripts/run-raw-stream-sim.sh
 ```
 
+如果需要新增永久样本，可以直接走本地专用接口：
+
+```bash
+POST /admin/dev/raw-samples/capture
+```
+
+它会把原始上游流和项目最终输出一起落到 `tests/raw_stream_samples/<sample-id>/`，并生成 `openai.output.txt` 作为最终输出的对照基线，便于后续继续分析字段和做回放比对。
+
 ## 6. `CONTENT_FILTER` 终态样本
 
 在 `content-filter-trigger-20260405-jwt3` 样本中，末尾会出现一组明确的风控终态字段：

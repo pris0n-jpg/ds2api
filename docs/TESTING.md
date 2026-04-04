@@ -235,7 +235,18 @@ go run ./cmd/ds2api-tests --no-preflight
 说明：
 - 该工具默认重放 `tests/raw_stream_samples/manifest.json` 声明的 canonical 样本，按上游 SSE 顺序做 1:1 仿真解析。
 - 默认校验不出现 `FINISHED` 文本泄露，并要求存在结束信号。
+- 如果样本目录里存在 `openai.output.txt`，会直接拿它和重放结果做对照；否则会回退到 `openai.stream.sse` / `openai.response.json`。
 - 结果会写入 `artifacts/raw-stream-sim/*.json`，可供其他测试脚本或排障流程复用。
+
+### 采集永久样本
+
+本地启动服务后，可以直接打：
+
+```bash
+POST /admin/dev/raw-samples/capture
+```
+
+这个接口会把请求、上游原始流和最终输出一起写入 `tests/raw_stream_samples/<sample-id>/`，以后可以直接拿来做回放和字段分析。
 
 ### 指定输出目录和超时
 

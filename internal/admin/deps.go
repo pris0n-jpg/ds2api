@@ -42,6 +42,10 @@ type PoolController interface {
 	ApplyRuntimeLimits(maxInflightPerAccount, maxQueueSize, globalMaxInflight int)
 }
 
+type OpenAIChatCaller interface {
+	ChatCompletions(w http.ResponseWriter, r *http.Request)
+}
+
 type DeepSeekCaller interface {
 	Login(ctx context.Context, acc config.Account) (string, error)
 	CreateSession(ctx context.Context, a *auth.RequestAuth, maxAttempts int) (string, error)
