@@ -138,6 +138,9 @@ Gemini-compatible clients can also send `x-goog-api-key`, `?key=`, or `?api_key=
 | POST | `/admin/accounts/sessions/delete-all` | Admin | Delete all sessions for one account |
 | POST | `/admin/import` | Admin | Batch import keys/accounts |
 | POST | `/admin/test` | Admin | Test API through service |
+| POST | `/admin/dev/raw-samples/capture` | Admin | Fire one request and persist it as a raw sample |
+| GET | `/admin/dev/raw-samples/query` | Admin | Search current in-memory capture chains by prompt keyword |
+| POST | `/admin/dev/raw-samples/save` | Admin | Persist a selected in-memory capture chain as a raw sample |
 | POST | `/admin/vercel/sync` | Admin | Sync config to Vercel |
 | GET | `/admin/vercel/status` | Admin | Vercel sync status |
 | POST | `/admin/vercel/status` | Admin | Vercel sync status / draft compare |
@@ -882,6 +885,74 @@ Test API availability through the service itself.
   "response": {"id": "..."}
 }
 ```
+
+### `POST /admin/dev/raw-samples/capture`
+
+Internally issues one `/v1/chat/completions` request through the service, then persists the request metadata and raw upstream SSE into `tests/raw_stream_samples/<sample-id>/`.
+
+Common request fields:
+
+| Field | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `message` | No | `你好` | Convenience single-turn user message |
+| `messages` | No | Auto-derived from `message` | OpenAI-style message array |
+| `model` | No | `deepseek-chat` | Target model |
+| `stream` | No | `true` | Recommended to keep streaming enabled so raw SSE is recorded |
+| `api_key` | No | First configured key | Business API key to use |
+| `sample_id` | No | Auto-generated | Sample directory name |
+
+On success, the response headers include:
+
+- `X-Ds2-Sample-Id`
+- `X-Ds2-Sample-Dir`
+- `X-Ds2-Sample-Meta`
+- `X-Ds2-Sample-Upstream`
+
+If the request itself succeeds but the process did not record a new upstream capture, the endpoint returns:
+
+```json
+{"detail":"no upstream capture was recorded"}
+```
+
+### `GET /admin/dev/raw-samples/query`
+
+Searches the current process's in-memory capture entries and groups `completion + continue` rounds by `chat_session_id`.
+
+**Query parameters**:
+
+| Param | Default | Notes |
+| --- | --- | --- |
+| `q` | empty | Fuzzy match against request/response text |
+| `limit` | `20` | Max number of chains returned |
+
+**Response fields** include:
+
+- `items[].chain_key`
+- `items[].capture_ids`
+- `items[].round_count`
+- `items[].initial_label`
+- `items[].request_preview`
+- `items[].response_preview`
+
+### `POST /admin/dev/raw-samples/save`
+
+Persists one selected in-memory capture chain into `tests/raw_stream_samples/<sample-id>/`.
+
+Any one of these selectors is accepted:
+
+```json
+{"chain_key":"session:xxxx","sample_id":"tmp-from-memory"}
+```
+
+```json
+{"capture_id":"cap_xxx","sample_id":"tmp-from-memory"}
+```
+
+```json
+{"query":"Guangzhou weather","sample_id":"tmp-from-memory"}
+```
+
+The success payload includes `sample_id`, `dir`, `meta_path`, and `upstream_path`.
 
 ### `POST /admin/vercel/sync`
 

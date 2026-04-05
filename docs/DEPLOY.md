@@ -65,7 +65,7 @@ cp config.example.json config.json
 go run ./cmd/ds2api
 ```
 
-默认监听 `http://0.0.0.0:5001`，可通过 `PORT` 环境变量覆盖。
+默认本地访问地址是 `http://127.0.0.1:5001`；服务实际绑定 `0.0.0.0:5001`，可通过 `PORT` 环境变量覆盖。
 
 ### 1.2 WebUI 构建
 

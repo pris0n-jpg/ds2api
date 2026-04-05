@@ -41,6 +41,7 @@ npm install
 # 3. 启动开发服务器（热更新）
 npm run dev
 # 默认监听 http://localhost:5173，自动代理 API 到后端
+# 当前未配置 host: 0.0.0.0，因此默认不对局域网开放
 ```
 
 WebUI 技术栈：

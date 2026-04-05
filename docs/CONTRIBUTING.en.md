@@ -41,6 +41,7 @@ npm install
 # 3. Start dev server (hot reload)
 npm run dev
 # Default: http://localhost:5173, auto-proxies API to backend
+# host: 0.0.0.0 is not configured, so LAN access is not enabled by default
 ```
 
 WebUI tech stack:

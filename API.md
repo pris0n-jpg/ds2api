@@ -138,6 +138,9 @@ Gemini 兼容客户端还可以使用 `x-goog-api-key`、`?key=` 或 `?api_key=`
 | POST | `/admin/accounts/sessions/delete-all` | Admin | 删除某账号的全部会话 |
 | POST | `/admin/import` | Admin | 批量导入 keys/accounts |
 | POST | `/admin/test` | Admin | 测试当前 API 可用性 |
+| POST | `/admin/dev/raw-samples/capture` | Admin | 直接发起一次请求并保存为 raw sample |
+| GET | `/admin/dev/raw-samples/query` | Admin | 按问题关键词查询当前内存抓包链 |
+| POST | `/admin/dev/raw-samples/save` | Admin | 把命中的内存抓包链保存为 raw sample |
 | POST | `/admin/vercel/sync` | Admin | 同步配置到 Vercel |
 | GET | `/admin/vercel/status` | Admin | Vercel 同步状态 |
 | POST | `/admin/vercel/status` | Admin | Vercel 同步状态 / 草稿对比 |
@@ -885,6 +888,74 @@ data: {"type":"message_stop"}
   "response": {"id": "..."}
 }
 ```
+
+### `POST /admin/dev/raw-samples/capture`
+
+直接通过服务自身发起一次 `/v1/chat/completions` 请求，并把请求元信息和上游原始 SSE 保存到 `tests/raw_stream_samples/<sample-id>/`。
+
+常用请求字段：
+
+| 字段 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `message` | 否 | `你好` | 便捷单轮用户消息 |
+| `messages` | 否 | 自动由 `message` 生成 | OpenAI 风格消息数组 |
+| `model` | 否 | `deepseek-chat` | 目标模型 |
+| `stream` | 否 | `true` | 建议保留流式，以记录原始 SSE |
+| `api_key` | 否 | 配置中第一个 key | 调用业务接口使用的 key |
+| `sample_id` | 否 | 自动生成 | 样本目录名 |
+
+成功时会在响应头里附带：
+
+- `X-Ds2-Sample-Id`
+- `X-Ds2-Sample-Dir`
+- `X-Ds2-Sample-Meta`
+- `X-Ds2-Sample-Upstream`
+
+如果请求本身成功，但当前进程没有记录到新的上游抓包，会返回：
+
+```json
+{"detail":"no upstream capture was recorded"}
+```
+
+### `GET /admin/dev/raw-samples/query`
+
+按关键词查询当前进程内存里的抓包记录，并按 `chat_session_id` 归并 `completion + continue` 链。
+
+**查询参数**：
+
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| `q` | 空 | 按请求体/响应体关键词模糊匹配 |
+| `limit` | `20` | 返回链条数上限 |
+
+**响应字段**包含：
+
+- `items[].chain_key`
+- `items[].capture_ids`
+- `items[].round_count`
+- `items[].initial_label`
+- `items[].request_preview`
+- `items[].response_preview`
+
+### `POST /admin/dev/raw-samples/save`
+
+把当前内存中的某条抓包链落盘为 `tests/raw_stream_samples/<sample-id>/`。
+
+支持以下任一种选中方式：
+
+```json
+{"chain_key":"session:xxxx","sample_id":"tmp-from-memory"}
+```
+
+```json
+{"capture_id":"cap_xxx","sample_id":"tmp-from-memory"}
+```
+
+```json
+{"query":"广州天气","sample_id":"tmp-from-memory"}
+```
+
+成功响应会返回 `sample_id`、`dir`、`meta_path`、`upstream_path`。
 
 ### `POST /admin/vercel/sync`
 

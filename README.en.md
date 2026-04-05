@@ -353,8 +353,8 @@ cp opencode.json.example opencode.json
 | `DS2API_VERCEL_INTERNAL_SECRET` | Vercel hybrid streaming internal auth | Falls back to `DS2API_ADMIN_KEY` |
 | `DS2API_VERCEL_STREAM_LEASE_TTL_SECONDS` | Stream lease TTL seconds | `900` |
 | `DS2API_DEV_PACKET_CAPTURE` | Local dev packet capture switch (record recent request/response bodies) | Enabled by default on non-Vercel local runtime |
-| `DS2API_DEV_PACKET_CAPTURE_LIMIT` | Number of captured sessions to retain (auto-evict overflow) | `5` |
-| `DS2API_DEV_PACKET_CAPTURE_MAX_BODY_BYTES` | Max recorded bytes per captured response body | `2097152` |
+| `DS2API_DEV_PACKET_CAPTURE_LIMIT` | Number of captured sessions to retain (auto-evict overflow) | `20` |
+| `DS2API_DEV_PACKET_CAPTURE_MAX_BODY_BYTES` | Max recorded bytes per captured response body | `5242880` |
 | `VERCEL_TOKEN` | Vercel sync token | — |
 | `VERCEL_PROJECT_ID` | Vercel project ID | — |
 | `VERCEL_TEAM_ID` | Vercel team ID | — |
@@ -392,21 +392,22 @@ Queue limit = DS2API_ACCOUNT_MAX_QUEUE (default = recommended concurrency)
 When `tools` is present in the request, DS2API performs anti-leak handling:
 
 1. Toolcall feature matching is enabled only in **non-code-block context** (fenced examples are ignored)
-   - In non-code-block context, tool JSON may still be recognized even when mixed with normal prose; surrounding prose can remain as text output.
-2. `responses` streaming strictly uses official item lifecycle events (`response.output_item.*`, `response.content_part.*`, `response.function_call_arguments.*`)
-3. Tool names not declared in the `tools` schema are strictly rejected and will not be emitted as valid tool calls
+2. The parser prioritizes XML/Markup, while also accepting JSON / ANTML / invoke / text-kv, and normalizes everything into the internal tool-call structure
+3. `responses` streaming strictly uses official item lifecycle events (`response.output_item.*`, `response.content_part.*`, `response.function_call_arguments.*`)
 4. `responses` supports and enforces `tool_choice` (`auto`/`none`/`required`/forced function); `required` violations return `422` for non-stream and `response.failed` for stream
-5. Valid tool call events are only emitted after passing policy validation, preventing invalid tool names from entering the client execution chain
+5. The output protocol follows the client request (OpenAI / Claude / Gemini native shapes); model-side prompting can prefer XML, and the compatibility layer handles the protocol-specific translation
+
+> Note: the current parser still prioritizes “parse successfully whenever possible”; hard allow-list rejection for undeclared tool names is not enabled yet.
 
 ## Local Dev Packet Capture
 
-This is for debugging issues such as Responses reasoning streaming and tool-call handoff. When enabled, DS2API stores the latest N DeepSeek conversation payload pairs (request body + upstream response body), defaulting to 5 entries with auto-eviction.
+This is for debugging issues such as Responses reasoning streaming and tool-call handoff. When enabled, DS2API stores the latest N DeepSeek conversation payload pairs (request body + upstream response body), defaulting to 20 entries with auto-eviction; each response body is capped at 5 MB by default.
 
 Enable example:
 
 ```bash
 DS2API_DEV_PACKET_CAPTURE=true \
-DS2API_DEV_PACKET_CAPTURE_LIMIT=5 \
+DS2API_DEV_PACKET_CAPTURE_LIMIT=20 \
 go run ./cmd/ds2api
 ```
 
@@ -414,12 +415,20 @@ Inspect/clear (Admin JWT required):
 
 - `GET /admin/dev/captures`: list captured items (newest first)
 - `DELETE /admin/dev/captures`: clear captured items
+- `GET /admin/dev/raw-samples/query?q=keyword&limit=20`: search current in-memory captures by prompt keyword and group `completion + continue` by `chat_session_id`
+- `POST /admin/dev/raw-samples/save`: persist a selected capture chain as `tests/raw_stream_samples/<sample-id>/`
 
 Response fields include:
 
 - `request_body`: full payload sent to DeepSeek
 - `response_body`: concatenated raw upstream stream body text
 - `response_truncated`: whether body-size truncation happened
+
+The save endpoint can target a chain by `query`, `chain_key`, or `capture_id`. Example:
+
+```json
+{"query":"Guangzhou weather","sample_id":"gz-weather-from-memory"}
+```
 
 ## Project Structure
 

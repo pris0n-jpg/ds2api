@@ -260,6 +260,21 @@ POST /admin/dev/raw-samples/capture
 
 这个接口会把请求元信息和上游原始流写入 `tests/raw_stream_samples/<sample-id>/`，以后可以直接拿来做回放和字段分析。派生输出会在本地回放时再生成，不再落在样本目录里。
 
+### 从内存抓包查询并保存样本
+
+如果问题刚刚在本地复现过，也可以先查当前进程内存里的抓包，再选择性落盘：
+
+```bash
+GET /admin/dev/raw-samples/query?q=广州&limit=10
+POST /admin/dev/raw-samples/save
+{"chain_key":"session:xxxx","sample_id":"tmp-from-memory"}
+```
+
+说明：
+- `query` 会按 `chat_session_id` 把 `completion + continue` 归并成一条链，适合定位接续思考问题。
+- `save` 支持用 `query`、`chain_key` 或 `capture_id` 选中目标。
+- 生成的样本目录仍然是 `tests/raw_stream_samples/<sample-id>/`，可以直接喂给回放脚本。
+
 ### 指定输出目录和超时
 
 ```bash

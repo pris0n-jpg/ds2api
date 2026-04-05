@@ -65,7 +65,7 @@ cp config.example.json config.json
 go run ./cmd/ds2api
 ```
 
-Default address: `http://0.0.0.0:5001` (override with `PORT`).
+Default local access URL: `http://127.0.0.1:5001`; the server actually binds to `0.0.0.0:5001` (override with `PORT`).
 
 ### 1.2 WebUI Build
 
