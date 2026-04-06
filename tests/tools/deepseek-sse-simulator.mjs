@@ -20,6 +20,7 @@ function parseArgs(argv) {
     failOnReferenceLeak: true,
     failOnMissingFinish: true,
     failOnBaselineMismatch: true,
+    failOnTokenMismatch: true,
     showOutput: false,
     writeReplayText: false,
   };
@@ -43,6 +44,8 @@ function parseArgs(argv) {
       out.failOnMissingFinish = false;
     } else if (a === '--no-fail-on-baseline-mismatch' || a === '--no-fail-on-processed-mismatch') {
       out.failOnBaselineMismatch = false;
+    } else if (a === '--no-fail-on-token-mismatch') {
+      out.failOnTokenMismatch = false;
     } else if (a === '--show-output') {
       out.showOutput = true;
     } else if (a === '--write-replay-text' || a === '--write-processed-text') {
@@ -183,6 +186,8 @@ function parseDeepSeekReplay(raw) {
   let thinkingText = '';
   let textOutput = '';
   let parsedChunks = 0;
+  let parsedOutputTokens = 0;
+  let expectedOutputTokens = 0;
 
   for (const evt of events) {
     if (evt.event === 'finish') {
@@ -198,7 +203,14 @@ function parseDeepSeekReplay(raw) {
       continue;
     }
     parsedChunks += 1;
+    const expected = extractAccumulatedTokenUsageFromRawChunk(obj);
+    if (expected > 0) {
+      expectedOutputTokens = expected;
+    }
     const parsed = parseChunkForContent(obj, true, currentType);
+    if (parsed.outputTokens > 0) {
+      parsedOutputTokens = parsed.outputTokens;
+    }
     currentType = parsed.newType;
     if (parsed.finished) {
       sawFinish = true;
@@ -220,12 +232,61 @@ function parseDeepSeekReplay(raw) {
     events: events.length,
     parsedChunks,
     sawFinish,
+    parsedOutputTokens,
+    expectedOutputTokens,
+    tokenMismatch: expectedOutputTokens > 0 && parsedOutputTokens !== expectedOutputTokens,
     outputText,
     outputChars: outputText.length,
     leakedFinishedText: outputText.includes('FINISHED'),
     leakedReferenceMarkers: /\[reference:/i.test(outputText),
     referenceLeakCount: (outputText.match(/\[reference:/gi) || []).length,
   };
+}
+
+function extractAccumulatedTokenUsageFromRawChunk(v) {
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      const n = extractAccumulatedTokenUsageFromRawChunk(item);
+      if (n > 0) {
+        return n;
+      }
+    }
+    return 0;
+  }
+  if (!v || typeof v !== 'object') {
+    return 0;
+  }
+  const direct = toTokenInt(v.accumulated_token_usage);
+  if (direct > 0) {
+    return direct;
+  }
+  const pathValue = typeof v.p === 'string' ? v.p.trim().toLowerCase() : '';
+  if (pathValue.includes('accumulated_token_usage')) {
+    const n = toTokenInt(v.v);
+    if (n > 0) {
+      return n;
+    }
+  }
+  for (const value of Object.values(v)) {
+    const n = extractAccumulatedTokenUsageFromRawChunk(value);
+    if (n > 0) {
+      return n;
+    }
+  }
+  return 0;
+}
+
+function toTokenInt(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    return Math.trunc(v);
+  }
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      return Math.trunc(n);
+    }
+  }
+  return 0;
 }
 
 function parseOpenAIStream(raw) {
@@ -410,12 +471,18 @@ function replaySample(dir, opts) {
   if (baselineResult && opts.failOnBaselineMismatch && !baselineMatch) {
     errors.push('baseline output mismatch');
   }
+  if (opts.failOnTokenMismatch && rawResult.tokenMismatch) {
+    errors.push(`token mismatch expected=${rawResult.expectedOutputTokens} parsed=${rawResult.parsedOutputTokens}`);
+  }
 
   return {
     sample_id: path.basename(dir),
     raw_events: rawResult.events,
     raw_parsed_chunks: rawResult.parsedChunks,
     raw_saw_finish: rawResult.sawFinish,
+    raw_expected_output_tokens: rawResult.expectedOutputTokens,
+    raw_parsed_output_tokens: rawResult.parsedOutputTokens,
+    raw_token_mismatch: rawResult.tokenMismatch,
     raw_output_chars: rawResult.outputChars,
     raw_leaked_finished_text: rawResult.leakedFinishedText,
     raw_leaked_reference_markers: rawResult.leakedReferenceMarkers,
@@ -485,6 +552,9 @@ function main() {
       raw_events: sample.raw_events,
       raw_parsed_chunks: sample.raw_parsed_chunks,
       raw_saw_finish: sample.raw_saw_finish,
+      raw_expected_output_tokens: sample.raw_expected_output_tokens,
+      raw_parsed_output_tokens: sample.raw_parsed_output_tokens,
+      raw_token_mismatch: sample.raw_token_mismatch,
       raw_output_chars: sample.raw_output_chars,
       raw_leaked_finished_text: sample.raw_leaked_finished_text,
       raw_leaked_reference_markers: sample.raw_leaked_reference_markers,
@@ -508,7 +578,7 @@ function main() {
       ? ` baseline=${sample.baseline_output_matches_replay ? 'match' : 'mismatch'}`
       : ' baseline=missing';
     const note = errors.length > 0 ? ` errors=${errors.join(';')}` : '';
-    console.log(`[sim] ${status} ${sample.sample_id} events=${sample.raw_events} parsed=${sample.raw_parsed_chunks} chars=${sample.raw_output_chars}${leakNote}${matchNote}${note}`);
+    console.log(`[sim] ${status} ${sample.sample_id} events=${sample.raw_events} parsed=${sample.raw_parsed_chunks} tokens=${sample.raw_parsed_output_tokens}/${sample.raw_expected_output_tokens} chars=${sample.raw_output_chars}${leakNote}${matchNote}${note}`);
     if (opts.showOutput) {
       console.log(`[sim] replay output for ${sample.sample_id}:`);
       console.log(sample.replay_output_text || '(empty)');

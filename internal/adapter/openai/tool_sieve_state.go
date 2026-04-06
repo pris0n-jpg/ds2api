@@ -3,7 +3,6 @@ package openai
 import (
 	"ds2api/internal/toolcall"
 	"strings"
-
 )
 
 type toolStreamSieveState struct {

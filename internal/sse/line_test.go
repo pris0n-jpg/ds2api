@@ -53,6 +53,23 @@ func TestParseDeepSeekContentLineCapturesAccumulatedTokenUsage(t *testing.T) {
 	}
 }
 
+func TestParseDeepSeekContentLineCapturesAccumulatedTokenUsageString(t *testing.T) {
+	res := ParseDeepSeekContentLine([]byte(`data: {"p":"response","o":"BATCH","v":[{"p":"accumulated_token_usage","v":"190"},{"p":"quasi_status","v":"FINISHED"}]}`), false, "text")
+	if res.OutputTokens != 190 {
+		t.Fatalf("expected output token usage 190, got %d", res.OutputTokens)
+	}
+}
+
+func TestParseDeepSeekContentLineErrorIncludesOutputTokens(t *testing.T) {
+	res := ParseDeepSeekContentLine([]byte(`data: {"error":"boom","accumulated_token_usage":123}`), false, "text")
+	if !res.Parsed || !res.Stop {
+		t.Fatalf("expected stop on error: %#v", res)
+	}
+	if res.OutputTokens != 123 {
+		t.Fatalf("expected output token usage 123 on error, got %d", res.OutputTokens)
+	}
+}
+
 func TestParseDeepSeekContentLineContent(t *testing.T) {
 	res := ParseDeepSeekContentLine([]byte(`data: {"p":"response/content","v":"hi"}`), false, "text")
 	if !res.Parsed || res.Stop {

@@ -20,6 +20,8 @@ function parseChunkForContent(chunk, thinkingEnabled, currentType, stripReferenc
     };
   }
 
+  const outputTokens = extractAccumulatedTokenUsage(chunk);
+
   if (Object.prototype.hasOwnProperty.call(chunk, 'error')) {
     return {
       parsed: true,
@@ -33,7 +35,6 @@ function parseChunkForContent(chunk, thinkingEnabled, currentType, stripReferenc
   }
 
   const pathValue = asString(chunk.p);
-  const outputTokens = extractAccumulatedTokenUsage(chunk);
 
   if (hasContentFilterStatus(chunk)) {
     return {
@@ -465,10 +466,19 @@ function findAccumulatedTokenUsage(v) {
 }
 
 function toInt(v) {
-  if (typeof v !== 'number' || !Number.isFinite(v)) {
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    return Math.trunc(v);
+  }
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      return Math.trunc(n);
+    }
+  }
+  if (typeof v !== 'number') {
     return 0;
   }
-  return Math.trunc(v);
+  return Number.isFinite(v) ? Math.trunc(v) : 0;
 }
 
 function formatErrorMessage(v) {

@@ -355,4 +355,3 @@ func TestConvertClaudeToDeepSeekOpusUsesSlowMapping(t *testing.T) {
 		t.Fatalf("expected opus to use slow mapping, got %q", out["model"])
 	}
 }
-

@@ -88,9 +88,9 @@ func TestGoCompatToolcallFixtures(t *testing.T) {
 
 		var expected struct {
 			Calls             []toolcall.ParsedToolCall `json:"calls"`
-			SawToolCallSyntax bool                  `json:"sawToolCallSyntax"`
-			RejectedByPolicy  bool                  `json:"rejectedByPolicy"`
-			RejectedToolNames []string              `json:"rejectedToolNames"`
+			SawToolCallSyntax bool                      `json:"sawToolCallSyntax"`
+			RejectedByPolicy  bool                      `json:"rejectedByPolicy"`
+			RejectedToolNames []string                  `json:"rejectedToolNames"`
 		}
 		mustLoadJSON(t, expectedPath, &expected)
 

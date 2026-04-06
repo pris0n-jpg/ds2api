@@ -20,8 +20,9 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 	if !parsed {
 		return LineResult{NextType: currentType}
 	}
+	outputTokens := extractAccumulatedTokenUsage(chunk)
 	if done {
-		return LineResult{Parsed: true, Stop: true, NextType: currentType}
+		return LineResult{Parsed: true, Stop: true, NextType: currentType, OutputTokens: outputTokens}
 	}
 	if errObj, hasErr := chunk["error"]; hasErr {
 		return LineResult{
@@ -29,6 +30,7 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 			Stop:         true,
 			ErrorMessage: fmt.Sprintf("%v", errObj),
 			NextType:     currentType,
+			OutputTokens: outputTokens,
 		}
 	}
 	if code, _ := chunk["code"].(string); code == "content_filter" {
@@ -37,7 +39,7 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 			Stop:          true,
 			ContentFilter: true,
 			NextType:      currentType,
-			OutputTokens:  extractAccumulatedTokenUsage(chunk),
+			OutputTokens:  outputTokens,
 		}
 	}
 	if hasContentFilterStatus(chunk) {
@@ -46,16 +48,16 @@ func ParseDeepSeekContentLine(raw []byte, thinkingEnabled bool, currentType stri
 			Stop:          true,
 			ContentFilter: true,
 			NextType:      currentType,
-			OutputTokens:  extractAccumulatedTokenUsage(chunk),
+			OutputTokens:  outputTokens,
 		}
 	}
 	parts, finished, nextType := ParseSSEChunkForContent(chunk, thinkingEnabled, currentType)
 	parts = filterLeakedContentFilterParts(parts)
 	return LineResult{
-		Parsed:   true,
-		Stop:     finished,
-		Parts:    parts,
-		NextType: nextType,
-		OutputTokens: extractAccumulatedTokenUsage(chunk),
+		Parsed:       true,
+		Stop:         finished,
+		Parts:        parts,
+		NextType:     nextType,
+		OutputTokens: outputTokens,
 	}
 }

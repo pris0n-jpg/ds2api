@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 )
 
 func BuildResponseObject(responseID, model, finalPrompt, finalThinking, finalText string, toolNames []string) map[string]any {

@@ -4,7 +4,6 @@ import (
 	"ds2api/internal/toolcall"
 	"regexp"
 	"strings"
-
 )
 
 // --- XML tool call support for the streaming sieve ---

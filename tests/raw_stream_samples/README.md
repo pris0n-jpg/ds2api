@@ -76,6 +76,23 @@ POST /admin/dev/raw-samples/save
 ./tests/scripts/run-raw-stream-sim.sh
 ```
 
+运行**全部样本目录**（不只 manifest 默认样本），并逐个打印 token 对齐结果：
+
+```bash
+for d in tests/raw_stream_samples/*; do
+  [ -d "$d" ] || continue
+  sid="$(basename "$d")"
+  [ -f "$d/upstream.stream.sse" ] || continue
+  node tests/tools/deepseek-sse-simulator.mjs --samples-root tests/raw_stream_samples --sample-id "$sid"
+done
+```
+
+回放输出会显示 `tokens=<parsed>/<expected>`，并在不一致时判定失败；`report.json` 中也会包含：
+
+- `raw_expected_output_tokens`
+- `raw_parsed_output_tokens`
+- `raw_token_mismatch`
+
 运行单个样本并和已有基线比对：
 
 ```bash

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math"
+	"strconv"
 	"strings"
 
 	"ds2api/internal/deepseek"
@@ -413,6 +414,19 @@ func toInt(v any) (int, bool) {
 			return 0, false
 		}
 		return int(i), true
+	case string:
+		s := strings.TrimSpace(x)
+		if s == "" {
+			return 0, false
+		}
+		if i, err := strconv.Atoi(s); err == nil {
+			return i, true
+		}
+		f, err := strconv.ParseFloat(s, 64)
+		if err != nil || math.IsNaN(f) || math.IsInf(f, 0) {
+			return 0, false
+		}
+		return int(f), true
 	default:
 		return 0, false
 	}

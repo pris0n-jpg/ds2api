@@ -57,9 +57,9 @@ func BuildOpenAIResponseObject(responseID, model, finalPrompt, finalThinking, fi
 		toolCalls := make([]any, 0, len(detected))
 		for _, tc := range detected {
 			toolCalls = append(toolCalls, map[string]any{
-				"type":       "tool_call",
-				"name":       tc.Name,
-				"arguments":  tc.Input,
+				"type":      "tool_call",
+				"name":      tc.Name,
+				"arguments": tc.Input,
 			})
 		}
 		output = append(output, map[string]any{

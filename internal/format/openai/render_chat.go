@@ -4,7 +4,6 @@ import (
 	"ds2api/internal/toolcall"
 	"strings"
 	"time"
-
 )
 
 func BuildChatCompletion(completionID, model, finalPrompt, finalThinking, finalText string, toolNames []string) map[string]any {

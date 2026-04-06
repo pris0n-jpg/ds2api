@@ -288,17 +288,17 @@ func TestQueryRawSampleCapturesGroupsBySessionAndMatchesQuestion(t *testing.T) {
 func TestBuildCaptureChainsPreservesCaptureOrderWhenTimestampsCollide(t *testing.T) {
 	snapshot := []devcapture.Entry{
 		{
-			ID:          "cap_continue",
-			CreatedAt:   1712365200,
-			Label:       "deepseek_continue",
-			RequestBody: `{"chat_session_id":"session-collision","message_id":2}`,
+			ID:           "cap_continue",
+			CreatedAt:    1712365200,
+			Label:        "deepseek_continue",
+			RequestBody:  `{"chat_session_id":"session-collision","message_id":2}`,
 			ResponseBody: "data: {\"v\":\"第二段\"}\n\n",
 		},
 		{
-			ID:          "cap_completion",
-			CreatedAt:   1712365200,
-			Label:       "deepseek_completion",
-			RequestBody: `{"chat_session_id":"session-collision","prompt":"题目"}`,
+			ID:           "cap_completion",
+			CreatedAt:    1712365200,
+			Label:        "deepseek_completion",
+			RequestBody:  `{"chat_session_id":"session-collision","prompt":"题目"}`,
 			ResponseBody: "data: {\"v\":\"第一段\"}\n\n",
 		},
 	}

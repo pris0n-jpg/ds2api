@@ -31,7 +31,7 @@ func TestCallContinuePropagatesPowHeaderToFallbackRequest(t *testing.T) {
 	var seenURL string
 
 	client := &Client{
-		stream:   failingDoer{err: errors.New("stream transport failed")},
+		stream: failingDoer{err: errors.New("stream transport failed")},
 		fallbackS: &http.Client{
 			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				seenPow = req.Header.Get("x-ds-pow-response")

@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	DeepSeekHost             = "chat.deepseek.com"
-	DeepSeekLoginURL         = "https://chat.deepseek.com/api/v0/users/login"
-	DeepSeekCreateSessionURL = "https://chat.deepseek.com/api/v0/chat_session/create"
-	DeepSeekCreatePowURL     = "https://chat.deepseek.com/api/v0/chat/create_pow_challenge"
-	DeepSeekCompletionURL    = "https://chat.deepseek.com/api/v0/chat/completion"
-	DeepSeekContinueURL      = "https://chat.deepseek.com/api/v0/chat/continue"
-	DeepSeekFetchSessionURL  = "https://chat.deepseek.com/api/v0/chat_session/fetch_page"
+	DeepSeekHost                 = "chat.deepseek.com"
+	DeepSeekLoginURL             = "https://chat.deepseek.com/api/v0/users/login"
+	DeepSeekCreateSessionURL     = "https://chat.deepseek.com/api/v0/chat_session/create"
+	DeepSeekCreatePowURL         = "https://chat.deepseek.com/api/v0/chat/create_pow_challenge"
+	DeepSeekCompletionURL        = "https://chat.deepseek.com/api/v0/chat/completion"
+	DeepSeekContinueURL          = "https://chat.deepseek.com/api/v0/chat/continue"
+	DeepSeekFetchSessionURL      = "https://chat.deepseek.com/api/v0/chat_session/fetch_page"
 	DeepSeekDeleteSessionURL     = "https://chat.deepseek.com/api/v0/chat_session/delete"
 	DeepSeekDeleteAllSessionsURL = "https://chat.deepseek.com/api/v0/chat_session/delete_all"
 )

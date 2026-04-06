@@ -1,8 +1,8 @@
 package gemini
 
 import (
-	"ds2api/internal/toolcall"
 	"bytes"
+	"ds2api/internal/toolcall"
 	"encoding/json"
 	"io"
 	"net/http"
